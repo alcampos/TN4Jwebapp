@@ -21,6 +21,12 @@
 			<button type="submit" class="btn btn-primary">Submit</button>
 		</div>
 	</form>
+	
+	<div id="tooltip" style="position:absolute;z-index:10;visibility:hidden">
+		<div id="tooltip-text"></div>
+		<div id="tooltip-interval"></div>
+	</div>
+	
 	<c:if test="${!isMain}">
 		<div id="graph"></div>
 		<style>
@@ -40,11 +46,11 @@
 			var width = 800, height = 800;
 			var force = d3.layout.force().charge(-200).linkDistance(30).size(
 					[ width, height ]);
-			var tooltip = d3.select("body").append("div").style("position",
-					"absolute").style("z-index", "10").style("visibility",
-					"hidden");
 			var svg = d3.select("#graph").append("svg").attr("width", "100%")
 					.attr("height", "100%").attr("pointer-events", "all");
+			var tooltip = d3.select("#tooltip");
+			var tooltipText = d3.select("#tooltip-text");
+			var tooltipInterval = d3.select("#tooltip-interval");
 			var jsonn = '${json}';
 			var graph = JSON.parse(jsonn);
 			force.nodes(graph.nodes).links(graph.links).start();
@@ -54,7 +60,8 @@
 					"circle").attr("class", function(d) {
 				return "node " + d.label;
 			}).attr("r", 10).call(force.drag).on("mouseover", function(d) {
-				tooltip.text(d.name);
+				tooltipText.text(d.name);
+				tooltipInterval.text(d.interval);
 				return tooltip.style("visibility", "visible");
 			}).on(
 					"mousemove",
@@ -86,7 +93,10 @@
 			});
 
 			function color(d) {
-				return d.label == "Person" ? "#3182bd" : "#fd8d3c";
+				return d.label == "VALOR" ? "#FF0000" : 
+					d.label == "OBJETO" ? "#00FF00" : 
+					d.label == "ARISTA" ? "#0000FF" : 
+					"#FFFF00";
 			}
 		</script>
 	</c:if>

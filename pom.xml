@@ -8,7 +8,7 @@
 	<name>CounterWebApp Maven Webapp</name>
 	<url>http://maven.apache.org</url>
 	<properties>
-		<jdk.version>1.7</jdk.version>
+		<jdk.version>1.8</jdk.version>
 		<spring.version>4.1.1.RELEASE</spring.version>
 		<jstl.version>1.2</jstl.version>
 		<junit.version>4.11</junit.version>
@@ -132,7 +132,6 @@
 					<downloadSources>true</downloadSources>
 					<downloadJavadocs>true</downloadJavadocs>
 					<wtpversion>2.0</wtpversion>
-					<wtpContextName>spring-css</wtpContextName>
 				</configuration>
 
 			</plugin>
