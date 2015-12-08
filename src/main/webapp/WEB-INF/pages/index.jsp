@@ -59,7 +59,6 @@ div#graph {
 .link {
 	fill: none;
 	stroke: #9ecae1;
-	stroke-width: 1.5px;
 }
 </style>
 		<script>
@@ -94,22 +93,39 @@ div#graph {
 			var usedColors = {};
 			force.nodes(graph.nodes).links(graph.links).start();
 			var link = svg.selectAll(".link").data(graph.links).enter().append(
-					"line").attr("class", "link");
-			var node = svg.selectAll(".node").data(graph.nodes).enter().append(
-					"circle").attr("class", function(d) {
-				return "node " + d.label;
-			}).attr("r", 10).call(force.drag).on("mouseover", function(d) {
-				tooltipText.text(d.name);
-				tooltipInterval.text(d.interval);
-				return tooltip.style("visibility", "visible");
-			}).on(
-					"mousemove",
-					function() {
-						return tooltip.style("top", (event.pageY - 10) + "px")
-								.style("left", (event.pageX + 10) + "px");
-					}).on("mouseout", function() {
-				return tooltip.style("visibility", "hidden");
-			}).style("fill", color);
+					"line").attr("class", "link").attr("stroke-width", "1.5px");
+			var node = svg.selectAll(".node")
+				.data(graph.nodes).enter()
+				.append("circle")
+				.attr("class", function(d) {return "node " + d.label;})
+				.attr("r", 10)
+				.call(force.drag)
+				.on("mouseover", function(d, i) {
+					tooltipText.text(d.name);
+					tooltipInterval.text(d.interval);
+					tooltip.style("visibility", "visible");
+					highlight(i, "4.5px");
+				})
+				.on("click", function(d, i) {
+					svg.selectAll(".link").attr("stroke-width", "1.5px");
+					if (!d.clickStatus) {
+						highlight(i, "4.5px");
+					}
+					d.clickStatus = !d.clickStatus;
+				})
+				.on("mousemove", function() {
+					tooltip
+						.style("top", (event.pageY - 10) + "px")
+						.style("left", (event.pageX + 10) + "px");
+				})
+				.on("mouseout", function(d, i) {
+					tooltip.style("visibility", "hidden");
+					if (!d.clickStatus) {
+						console.log("HIGHLIGHING 1.5");
+						highlight(i, "1.5px");
+					}
+				})
+				.style("fill", color);
 			node.append("title").text(function(d) {
 				return d.title;
 			});
@@ -130,6 +146,12 @@ div#graph {
 				});
 
 			});
+			
+			function highlight(i, width) {
+				svg.selectAll(".link").filter(function(l) {
+					return l.source.index == i || l.target.index == i;
+				}).attr("stroke-width", width);
+			}
 
 			function color(d) {
 				if (d.label == "OBJETO" || d.label == "ARISTA") {
