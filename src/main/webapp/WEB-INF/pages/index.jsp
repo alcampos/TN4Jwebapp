@@ -36,7 +36,9 @@
 	</div>
 
 	<c:if test="${!isMain}">
+	<div id="outter">
 		<div id="graph"></div>
+	</div>
 		<style>
 html {
 	height: 100%;
@@ -44,6 +46,11 @@ html {
 
 body {
 	height: 100%;
+}
+
+div#outter {
+height: 100%;
+	overflow: auto;
 }
 
 div#graph {
@@ -79,13 +86,13 @@ div#graph {
 						console.log("Something moved. min: " + data.values.min
 								+ " max: " + data.values.max);
 					});
-			var width = 800, height = 800;
+			var width = window.innerWidth, height = 1000;
 			var clickNode = true;
 			var erased = false;
-			var force = d3.layout.force().charge(-200).linkDistance(30).size(
+			var force = d3.layout.force().charge(-300).linkDistance(30).size(
 					[ width, height ]);
 			var svg = d3.select("#graph").append("svg").attr("width", "100%")
-					.attr("height", "100%").attr("pointer-events", "all");
+					.attr("height", height).attr("pointer-events", "all");
 			var tooltip = d3.select("#tooltip");
 			var tooltipText = d3.select("#tooltip-text");
 			var tooltipInterval = d3.select("#tooltip-interval");
@@ -213,6 +220,12 @@ div#graph {
 				}
 				return color;
 			}
+			
+			window.onresize = function() {
+				  width = window.innerWidth;
+				  svg.attr('width', width).attr('height', height);
+				  force.size([width, height]).resume();
+			};
 		</script>
 	</c:if>
 </body>
