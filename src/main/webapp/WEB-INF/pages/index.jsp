@@ -21,15 +21,28 @@
 			<button type="submit" class="btn btn-primary">Submit</button>
 		</div>
 	</form>
-	
-	<div id="tooltip" style="position:absolute;z-index:10;visibility:hidden">
+
+	<div id="tooltip"
+		style="position: absolute; z-index: 10; visibility: hidden">
 		<div id="tooltip-text"></div>
 		<div id="tooltip-interval"></div>
 	</div>
-	
+
 	<c:if test="${!isMain}">
 		<div id="graph"></div>
 		<style>
+html {
+	height: 100%;
+}
+
+body {
+	height: 100%;
+}
+
+div#graph {
+	height: 100%;
+}
+
 .node {
 	cursor: pointer;
 	stroke: #3182bd;
@@ -53,6 +66,8 @@
 			var tooltipInterval = d3.select("#tooltip-interval");
 			var jsonn = '${json}';
 			var graph = JSON.parse(jsonn);
+			var colorMap = {};
+			var usedColors = {};
 			force.nodes(graph.nodes).links(graph.links).start();
 			var link = svg.selectAll(".link").data(graph.links).enter().append(
 					"line").attr("class", "link");
@@ -93,10 +108,35 @@
 			});
 
 			function color(d) {
-				return d.label == "VALOR" ? "#FF0000" : 
-					d.label == "OBJETO" ? "#00FF00" : 
-					d.label == "ARISTA" ? "#0000FF" : 
-					"#FFFF00";
+				if (d.label == "OBJETO" || d.label == "ARISTA") {
+					if (d.name in colorMap) {
+						return colorMap[d.name];
+					} else {
+						var color;
+						do {
+							color = getRandomColor();
+						} while (color in usedColors);
+						colorMap[d.name] = color;
+						usedColors[color] = true;
+						return color;
+					}
+				}
+				if (d.label in colorMap) {
+					return colorMap[d.label];
+				}
+				var color = getRandomColor();
+				usedColors[color] = true;
+				colorMap[d.label] = color;
+				return color; 
+			}
+
+			function getRandomColor() {
+				var letters = '0123456789ABCDEF'.split('');
+				var color = '#';
+				for (var i = 0; i < 6; i++) {
+					color += letters[Math.floor(Math.random() * 16)];
+				}
+				return color;
 			}
 		</script>
 	</c:if>
