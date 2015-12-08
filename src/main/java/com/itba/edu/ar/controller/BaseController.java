@@ -37,6 +37,7 @@ public class BaseController {
 		model.addAttribute("message", "Welcome " + query);
 		model.addAttribute("counter", ++counter);
 		model.addAttribute("isMain", false);
+		model.addAttribute("query", query);
 		String renderJson = "{\"nodes\":[], \"links\":[]}";
 		try {
 			Test test = new Test(query);

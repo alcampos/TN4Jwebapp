@@ -2,26 +2,33 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <html>
 <head>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
 <link href="<c:url value="/resources/css/main.css" />" rel="stylesheet">
+<link href="<c:url value="/resources/css/iThing.css" />"
+	rel="stylesheet">
 <script src="<c:url value="/resources/js/main.js" />"></script>
+<script src="<c:url value="/resources/js/jQAllRangeSliders-min.js" />"></script>
 <link rel="stylesheet"
 	href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
 <script
-	src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-<script
 	src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
 </head>
 <body>
 	<h1>Neo4j Visualizer</h1>
 	<form role="form" action="/query" method="post">
 		<div class="form-group">
 			<label for="inputlg">Insert Query</label> <input
-				class="form-control input-lg" id="inputlg" type="text" name="query">
+				class="form-control input-lg" id="inputlg" type="text" name="query"
+				value="${query}">
 			<button type="submit" class="btn btn-primary">Submit</button>
 		</div>
 	</form>
-
+	<div id="slider"></div>
 	<div id="tooltip"
 		style="position: absolute; z-index: 10; visibility: hidden">
 		<div id="tooltip-text"></div>
@@ -56,6 +63,23 @@ div#graph {
 }
 </style>
 		<script>
+			$("#slider").dateRangeSlider({
+				bounds : {
+					min : new Date(2012, 0, 1),
+					max : new Date(2013, 11, 31, 12, 59, 59)
+				},
+				defaultValues : {
+					min : new Date(2012, 1, 10),
+					max : new Date(2012, 4, 22)
+				}
+			});
+			$("#slider").on(
+					"valuesChanging",
+					function(e, data) {
+
+						console.log("Something moved. min: " + data.values.min
+								+ " max: " + data.values.max);
+					});
 			var width = 800, height = 800;
 			var force = d3.layout.force().charge(-200).linkDistance(30).size(
 					[ width, height ]);
@@ -127,7 +151,7 @@ div#graph {
 				var color = getRandomColor();
 				usedColors[color] = true;
 				colorMap[d.label] = color;
-				return color; 
+				return color;
 			}
 
 			function getRandomColor() {
