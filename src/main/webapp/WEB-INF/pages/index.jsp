@@ -80,6 +80,8 @@ div#graph {
 								+ " max: " + data.values.max);
 					});
 			var width = 800, height = 800;
+			var clickNode = true;
+			var erased = false;
 			var force = d3.layout.force().charge(-200).linkDistance(30).size(
 					[ width, height ]);
 			var svg = d3.select("#graph").append("svg").attr("width", "100%")
@@ -94,6 +96,17 @@ div#graph {
 			force.nodes(graph.nodes).links(graph.links).start();
 			var link = svg.selectAll(".link").data(graph.links).enter().append(
 					"line").attr("class", "link").attr("stroke-width", "1.5px");
+			svg.on("click", function(d, i) {
+				if (clickNode) {
+					clickNode = false;
+				} else {
+					svg.selectAll(".link").attr("stroke-width", "1.5px");
+					svg.selectAll(".node").attr("opacity" , "1").each(function (d, i) {
+						d.clickStatus = false;
+					});
+					erased = true;
+				}
+			});
 			var node = svg.selectAll(".node")
 				.data(graph.nodes).enter()
 				.append("circle")
@@ -104,12 +117,18 @@ div#graph {
 					tooltipText.text(d.name);
 					tooltipInterval.text(d.interval);
 					tooltip.style("visibility", "visible");
-					highlight(i, "4.5px");
+// 					highlight(i, "4.5px");
 				})
 				.on("click", function(d, i) {
+					clickNode = true;
 					svg.selectAll(".link").attr("stroke-width", "1.5px");
-					if (!d.clickStatus) {
+					svg.selectAll(".node").attr("opacity" , "1");
+					if (!d.clickStatus || erased) {
+						svg.selectAll(".node").each(function (d, i) {
+							d.clickStatus = false;
+						});
 						highlight(i, "4.5px");
+						erased = false;
 					}
 					d.clickStatus = !d.clickStatus;
 				})
@@ -120,10 +139,10 @@ div#graph {
 				})
 				.on("mouseout", function(d, i) {
 					tooltip.style("visibility", "hidden");
-					if (!d.clickStatus) {
-						console.log("HIGHLIGHING 1.5");
-						highlight(i, "1.5px");
-					}
+// 					if (!d.clickStatus) {
+// 						console.log("HIGHLIGHING 1.5");
+// 						highlight(i, "1.5px");
+// 					}
 				})
 				.style("fill", color);
 			node.append("title").text(function(d) {
@@ -148,9 +167,19 @@ div#graph {
 			});
 			
 			function highlight(i, width) {
+				var indexes = {};
 				svg.selectAll(".link").filter(function(l) {
-					return l.source.index == i || l.target.index == i;
+					var ret = l.source.index == i || l.target.index == i;
+					if (ret) {
+						indexes[l.source.index] = true;
+						indexes[l.target.index] = true;
+					}
+					return ret;
 				}).attr("stroke-width", width);
+				
+				svg.selectAll(".node").filter(function (d, index) {
+					return !(index in indexes);
+				}).attr("opacity" , "0.2");
 			}
 
 			function color(d) {
