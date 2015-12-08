@@ -2,15 +2,15 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <html>
 <head>
-<script
-	src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-<script
-	src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
 <link href="<c:url value="/resources/css/main.css" />" rel="stylesheet">
+<link href="<c:url value="/resources/css/nouislider.min.css" />" rel="stylesheet">
 <link href="<c:url value="/resources/css/iThing.css" />"
 	rel="stylesheet">
 <script src="<c:url value="/resources/js/main.js" />"></script>
-<script src="<c:url value="/resources/js/jQAllRangeSliders-min.js" />"></script>
+<script src="<c:url value="/resources/js/nouislider.min.js" />"></script>
 <link rel="stylesheet"
 	href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
 <script
@@ -28,13 +28,15 @@
 			<button type="submit" class="btn btn-primary">Submit</button>
 		</div>
 	</form>
-	<div id="slider"></div>
 	<div id="tooltip"
 		style="position: absolute; z-index: 10; visibility: hidden">
 		<div id="tooltip-text"></div>
 		<div id="tooltip-interval"></div>
 	</div>
-
+	
+	<input type="text" id="amount" value="40" />
+	<div id="slider"></div>
+	
 	<c:if test="${!isMain}">
 		<div id="graph"></div>
 		<style>
@@ -62,23 +64,6 @@ div#graph {
 }
 </style>
 		<script>
-			$("#slider").dateRangeSlider({
-				bounds : {
-					min : new Date(2012, 0, 1),
-					max : new Date(2013, 11, 31, 12, 59, 59)
-				},
-				defaultValues : {
-					min : new Date(2012, 1, 10),
-					max : new Date(2012, 4, 22)
-				}
-			});
-			$("#slider").on(
-					"valuesChanging",
-					function(e, data) {
-
-						console.log("Something moved. min: " + data.values.min
-								+ " max: " + data.values.max);
-					});
 			var width = 800, height = 800;
 			var force = d3.layout.force().charge(-200).linkDistance(30).size(
 					[ width, height ]);
@@ -89,6 +74,27 @@ div#graph {
 			var tooltipInterval = d3.select("#tooltip-interval");
 			var jsonn = '${json}';
 			var graph = JSON.parse(jsonn);
+			var events = getEvents(graph);
+			var distinctMoments = getDistinctMoments(events);
+			console.log(distinctMoments);
+			if (events.length > 0) {
+				var snapSlider = document.getElementById('slider');
+				var range = {};
+				// FIXME: Fix when intervals don't contain ""
+				range['min'] = 0;
+				range['max'] = distinctMoments.length - 1;
+				
+				for (var r = 2; r < distinctMoments.length - 1; r++) {
+					range[(r - 1)*(100 / (distinctMoments.length - 1)) + '%'] = r;
+				}
+				
+				noUiSlider.create(snapSlider, {
+					start: [range['min'], range['max']],
+					snap: true,
+					connect: true,
+					range: range
+				});
+			}
 			var colorMap = {};
 			var usedColors = {};
 			force.nodes(graph.nodes).links(graph.links).start();
@@ -121,7 +127,6 @@ div#graph {
 				.on("mouseout", function(d, i) {
 					tooltip.style("visibility", "hidden");
 					if (!d.clickStatus) {
-						console.log("HIGHLIGHING 1.5");
 						highlight(i, "1.5px");
 					}
 				})
@@ -183,6 +188,45 @@ div#graph {
 					color += letters[Math.floor(Math.random() * 16)];
 				}
 				return color;
+			}
+			
+			function getEvents(graph) {
+				var events = [];
+				graph.nodes.forEach(function(n, ix) {
+					var intervals = n.interval.split("], [");
+					console.log("INTERVALS " + intervals);
+					var moments = [];
+					intervals.forEach(function(i) {
+						moments = moments.concat(i.replace("[", "").replace("]", "").split(", "));
+					});
+					events = events.concat(moments.map(function(m) {return {index: ix, moment: m}}));
+				});
+				return events.sort(function(e1, e2) {
+					if (e1.moment == "inf") {
+						if (e2.moment == "inf") {
+							return 0;
+						}
+						
+						return 1;
+					} else if (e2.moment == "inf") {
+						return -1;
+					}
+					
+					return e1.moment - e2.moment;
+				});
+			}
+			
+			function getDistinctMoments(orderedEvents) {
+				var distinctMoments = [];
+				for (var i = 0; i < orderedEvents.length; i++) {
+					var event = orderedEvents[i];
+					if (distinctMoments.length == 0 
+						|| distinctMoments[distinctMoments.length - 1] != event.moment) {
+						distinctMoments.push(event.moment);
+					}
+				}
+				
+				return distinctMoments;
 			}
 		</script>
 	</c:if>
