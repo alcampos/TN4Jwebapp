@@ -302,6 +302,10 @@ div#graph {
 					if (start <= moments[2 * i + 1] && (moments[2*i+1] <= end || end == 'inf')) {
 						return true;
 					}
+					
+					if (moments[2*i] <= start && (end <= moments[2 * i + 1] || moments[2 * i + 1] == 'inf')) {
+						return true;
+					}
 				}
 				
 				return false;
