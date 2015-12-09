@@ -71,8 +71,6 @@ div#graph {
 }
 </style>
 		<script>
-			var width = 800, height = 800;
-			var force = d3.layout.force().charge(-200).linkDistance(30).size(
 			var width = window.innerWidth, height = 1000;
 			var clickNode = true;
 			var erased = false;
@@ -87,24 +85,38 @@ div#graph {
 			var graph = JSON.parse(jsonn);
 			var events = getEvents(graph);
 			var distinctMoments = getDistinctMoments(events);
-			console.log(distinctMoments);
 			if (events.length > 0) {
 				var snapSlider = document.getElementById('slider');
 				var range = {};
-				// FIXME: Fix when intervals don't contain ""
 				range['min'] = 0;
 				range['max'] = distinctMoments.length - 1;
 				
-				for (var r = 2; r < distinctMoments.length - 1; r++) {
-					range[(r - 1)*(100 / (distinctMoments.length - 1)) + '%'] = r;
+				for (var r = 1; r < distinctMoments.length - 1; r++) {
+					range[r * (100 / (distinctMoments.length - 1)) + '%'] = r;
 				}
 				
-				noUiSlider.create(snapSlider, {
+				var formatter  = {
+					to: function (value) {
+						return distinctMoments[value | 0];
+					},
+					from: function (value) {
+						return distinctMoments.indexOf(value);
+					}
+				};
+				
+				var slider = noUiSlider.create(snapSlider, {
 					start: [range['min'], range['max']],
 					snap: true,
 					connect: true,
+					tooltips: [formatter, formatter],
 					range: range
 				});
+				
+				slider.on('update', function(values, handle) {
+					doSlider(values, distinctMoments);
+				});
+				
+				
 			}
 			var colorMap = {};
 			var usedColors = {};
@@ -228,12 +240,7 @@ div#graph {
 			function getEvents(graph) {
 				var events = [];
 				graph.nodes.forEach(function(n, ix) {
-					var intervals = n.interval.split("], [");
-					console.log("INTERVALS " + intervals);
-					var moments = [];
-					intervals.forEach(function(i) {
-						moments = moments.concat(i.replace("[", "").replace("]", "").split(", "));
-					});
+					var moments = splitIntervalIntoMoments(n.interval);
 					events = events.concat(moments.map(function(m) {return {index: ix, moment: m}}));
 				});
 				return events.sort(function(e1, e2) {
@@ -268,6 +275,47 @@ div#graph {
 				  svg.attr('width', width).attr('height', height);
 				  force.size([width, height]).resume();
 			};
+			
+			function doSlider(interval, map) {
+				svg.selectAll(".link").attr("display", "none");
+				svg.selectAll(".node").attr("display", "none");
+				var visibleNodes = [];
+				svg.selectAll(".node").filter(function(node) {
+					var bool = intervalBelongs([map[interval[0] | 0], map[interval[1] | 0]], node.interval);
+					visibleNodes[node.id] = bool;
+					return bool;
+				}).attr("display", "block");
+				svg.selectAll(".link").filter(function(link) {
+					return visibleNodes[link.source.id] && visibleNodes[link.target.id];
+				}).attr("display", "block");
+			}
+			
+			function intervalBelongs(interval, testInterval) {
+				var start = interval[0];
+				var end = interval[1];
+				var moments = splitIntervalIntoMoments(testInterval);
+				for (var i = 0; i < moments.length / 2; i++) {
+					if (start <= moments[2 * i] && (moments[2*i] <= end || end == 'inf')) {
+						return true;
+					}
+					
+					if (start <= moments[2 * i + 1] && (moments[2*i+1] <= end || end == 'inf')) {
+						return true;
+					}
+				}
+				
+				return false;
+			}
+			
+			function splitIntervalIntoMoments(interval) {
+				var intervals = interval.split("], [");
+				var moments = [];
+				intervals.forEach(function(i) {
+					moments = moments.concat(i.replace("[", "").replace("]", "").split(", "));
+				});
+				
+				return moments;
+			}
 		</script>
 	</c:if>
 </body>
