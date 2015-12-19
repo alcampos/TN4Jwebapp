@@ -2,13 +2,22 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <html>
 <head>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
-<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<link rel="stylesheet"
+	href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
 <link href="<c:url value="/resources/css/main.css" />" rel="stylesheet">
-<link href="<c:url value="/resources/css/nouislider.min.css" />" rel="stylesheet">
+<link href="<c:url value="/resources/css/nouislider.min.css" />"
+	rel="stylesheet">
 <link href="<c:url value="/resources/css/iThing.css" />"
 	rel="stylesheet">
+<link
+	href="https://gitcdn.github.io/bootstrap-toggle/2.2.0/css/bootstrap-toggle.min.css"
+	rel="stylesheet">
+<script
+	src="https://gitcdn.github.io/bootstrap-toggle/2.2.0/js/bootstrap-toggle.min.js"></script>
 <script src="<c:url value="/resources/js/main.js" />"></script>
 <script src="<c:url value="/resources/js/nouislider.min.js" />"></script>
 <link rel="stylesheet"
@@ -28,20 +37,41 @@
 			<button type="submit" class="btn btn-primary">Submit</button>
 		</div>
 	</form>
-	<div id="tooltip"
+	
+
+
+
+
+	<c:if test="${!isMain}">
+		<input type="checkbox" data-toggle="toggle" data-on="SNAPSHOT"
+			data-off="IN" id="checkbox">
+		<div id="separador"></div>
+		<div id="tooltip"
 		style="position: absolute; z-index: 10; visibility: hidden">
 		<div id="tooltip-text"></div>
 		<div id="tooltip-interval"></div>
-	</div>
-	
-	<input type="text" id="amount" value="40" />
-	<div id="slider"></div>
-	
-	<c:if test="${!isMain}">
-	<div id="outter">
-		<div id="graph"></div>
-	</div>
+		</div>
+		<div id="slider"></div>
+		<div id="slider_snapshot"></div>
+		<div id="outter">
+			<div id="graph"></div>
+		</div>
 		<style>
+
+#separador {
+	height: 40px;
+}
+
+#slider {
+	width: 80%;
+	margin: 0 auto;
+}
+
+#slider_snapshot {
+	width: 80%;
+	margin: 0 auto;
+}
+
 html {
 	height: 100%;
 }
@@ -51,7 +81,7 @@ body {
 }
 
 div#outter {
-height: 100%;
+	height: 100%;
 	overflow: auto;
 }
 
@@ -90,33 +120,46 @@ div#graph {
 				var range = {};
 				range['min'] = 0;
 				range['max'] = distinctMoments.length - 1;
-				
+
 				for (var r = 1; r < distinctMoments.length - 1; r++) {
 					range[r * (100 / (distinctMoments.length - 1)) + '%'] = r;
 				}
-				
-				var formatter  = {
-					to: function (value) {
+
+				var formatter = {
+					to : function(value) {
 						return distinctMoments[value | 0];
 					},
-					from: function (value) {
+					from : function(value) {
 						return distinctMoments.indexOf(value);
 					}
 				};
-				
+
 				var slider = noUiSlider.create(snapSlider, {
-					start: [range['min'], range['max']],
-					snap: true,
-					connect: true,
-					tooltips: [formatter, formatter],
-					range: range
+					start : [ range['min'], range['max'] ],
+					snap : true,
+					connect : true,
+					tooltips : [ formatter, formatter ],
+					range : range
 				});
-				
+
 				slider.on('update', function(values, handle) {
 					doSlider(values, distinctMoments);
 				});
 				
-				
+				var snapSliderSnapshot = document.getElementById('slider_snapshot');
+
+				var sliderSnapshot = noUiSlider.create(snapSliderSnapshot, {
+					start : [range['min']],
+					snap : true,
+					tooltips : [ formatter ],
+					range : range
+				});
+
+				sliderSnapshot.on('update', function(values, handle) {
+					doSlider(values, distinctMoments);
+				});
+				$('#slider_snapshot').hide();
+
 			}
 			var colorMap = {};
 			var usedColors = {};
@@ -128,46 +171,40 @@ div#graph {
 					clickNode = false;
 				} else {
 					svg.selectAll(".link").attr("stroke-width", "1.5px");
-					svg.selectAll(".node").attr("opacity" , "1").each(function (d, i) {
-						d.clickStatus = false;
-					});
+					svg.selectAll(".node").attr("opacity", "1").each(
+							function(d, i) {
+								d.clickStatus = false;
+							});
 					erased = true;
 				}
 			});
-			var node = svg.selectAll(".node")
-				.data(graph.nodes).enter()
-				.append("circle")
-				.attr("class", function(d) {return "node " + d.label;})
-				.attr("r", 10)
-				.call(force.drag)
-				.on("mouseover", function(d, i) {
-					tooltipText.text(d.name);
-					tooltipInterval.text(d.interval);
-					tooltip.style("visibility", "visible");
-// 					highlight(i, "4.5px");
-				})
-				.on("click", function(d, i) {
-					clickNode = true;
-					svg.selectAll(".link").attr("stroke-width", "1.5px");
-					svg.selectAll(".node").attr("opacity" , "1");
-					if (!d.clickStatus || erased) {
-						svg.selectAll(".node").each(function (d, i) {
-							d.clickStatus = false;
-						});
-						highlight(i, "4.5px");
-						erased = false;
-					}
-					d.clickStatus = !d.clickStatus;
-				})
-				.on("mousemove", function() {
-					tooltip
-						.style("top", (event.pageY - 10) + "px")
-						.style("left", (event.pageX + 10) + "px");
-				})
-				.on("mouseout", function(d, i) {
-					tooltip.style("visibility", "hidden");
-				})
-				.style("fill", color);
+			var node = svg.selectAll(".node").data(graph.nodes).enter().append(
+					"circle").attr("class", function(d) {
+				return "node " + d.label;
+			}).attr("r", 10).call(force.drag).on("mouseover", function(d, i) {
+				tooltipText.text(d.name);
+				tooltipInterval.text(d.interval);
+				tooltip.style("visibility", "visible");
+			}).on("click", function(d, i) {
+				clickNode = true;
+				svg.selectAll(".link").attr("stroke-width", "1.5px");
+				svg.selectAll(".node").attr("opacity", "1");
+				if (!d.clickStatus || erased) {
+					svg.selectAll(".node").each(function(d, i) {
+						d.clickStatus = false;
+					});
+					highlight(i, "4.5px");
+					erased = false;
+				}
+				d.clickStatus = !d.clickStatus;
+			}).on(
+					"mousemove",
+					function() {
+						tooltip.style("top", (event.pageY - 10) + "px").style(
+								"left", (event.pageX + 10) + "px");
+					}).on("mouseout", function(d, i) {
+				tooltip.style("visibility", "hidden");
+			}).style("fill", color);
 			node.append("title").text(function(d) {
 				return d.title;
 			});
@@ -189,6 +226,23 @@ div#graph {
 
 			});
 			
+			$(function() {
+				$('#checkbox').change(function() {
+					if ($(this).prop('checked')) {
+						$('#slider').hide();
+						$('#slider_snapshot').show();
+						var slider = document.getElementById('slider_snapshot');
+						doSlider(slider.noUiSlider.get(), distinctMoments);
+					} else {
+						$('#slider').show();
+						$('#slider_snapshot').hide();
+						var slider = document.getElementById('slider');
+						doSlider(slider.noUiSlider.get(), distinctMoments);
+					}
+					
+				})
+			})
+
 			function highlight(i, width) {
 				var indexes = {};
 				svg.selectAll(".link").filter(function(l) {
@@ -199,10 +253,10 @@ div#graph {
 					}
 					return ret;
 				}).attr("stroke-width", width);
-				
-				svg.selectAll(".node").filter(function (d, index) {
+
+				svg.selectAll(".node").filter(function(d, index) {
 					return !(index in indexes);
-				}).attr("opacity" , "0.2");
+				}).attr("opacity", "0.2");
 			}
 
 			function color(d) {
@@ -236,50 +290,55 @@ div#graph {
 				}
 				return color;
 			}
-			
+
 			function getEvents(graph) {
 				var events = [];
 				graph.nodes.forEach(function(n, ix) {
 					var moments = splitIntervalIntoMoments(n.interval);
-					events = events.concat(moments.map(function(m) {return {index: ix, moment: m}}));
+					events = events.concat(moments.map(function(m) {
+						return {
+							index : ix,
+							moment : m
+						}
+					}));
 				});
 				return events.sort(function(e1, e2) {
 					if (e1.moment == "inf") {
 						if (e2.moment == "inf") {
 							return 0;
 						}
-						
+
 						return 1;
 					} else if (e2.moment == "inf") {
 						return -1;
 					}
-					
+
 					return e1.moment - e2.moment;
 				});
 			}
-			
+
 			function getDistinctMoments(orderedEvents) {
 				var distinctMoments = [];
 				for (var i = 0; i < orderedEvents.length; i++) {
 					var event = orderedEvents[i];
-					if (distinctMoments.length == 0 
-						|| distinctMoments[distinctMoments.length - 1] != event.moment) {
+					if (distinctMoments.length == 0
+							|| distinctMoments[distinctMoments.length - 1] != event.moment) {
 						distinctMoments.push(event.moment);
 					}
 				}
-				
+
 				return distinctMoments;
 			}
 			window.onresize = function() {
-				  width = window.innerWidth;
-				  svg.attr('width', width).attr('height', height);
-				  force.size([width, height]).resume();
+				width = window.innerWidth;
+				svg.attr('width', width).attr('height', height);
+				force.size([ width, height ]).resume();
 			};
-			
+
 			function doSlider(interval, map) {
 				svg.selectAll(".link").attr("display", "none");
 				svg.selectAll(".node").attr("display", "none");
-				
+
 				var graph = {};
 				graph.nodes = [];
 				graph.links = [];
@@ -482,29 +541,33 @@ div#graph {
 				var end = interval[1];
 				var moments = splitIntervalIntoMoments(testInterval);
 				for (var i = 0; i < moments.length / 2; i++) {
-					if (start <= moments[2 * i] && (moments[2*i] <= end || end == 'inf')) {
+					if (start <= moments[2 * i]
+							&& (moments[2 * i] <= end || end == 'inf')) {
 						return true;
 					}
-					
-					if (start <= moments[2 * i + 1] && (moments[2*i+1] <= end || end == 'inf')) {
+
+					if (start <= moments[2 * i + 1]
+							&& (moments[2 * i + 1] <= end || end == 'inf')) {
 						return true;
 					}
-					
-					if (moments[2*i] <= start && (end <= moments[2 * i + 1] || moments[2 * i + 1] == 'inf')) {
+
+					if (moments[2 * i] <= start
+							&& (end <= moments[2 * i + 1] || moments[2 * i + 1] == 'inf')) {
 						return true;
 					}
 				}
-				
+
 				return false;
 			}
-			
+
 			function splitIntervalIntoMoments(interval) {
 				var intervals = interval.split("], [");
 				var moments = [];
 				intervals.forEach(function(i) {
-					moments = moments.concat(i.replace("[", "").replace("]", "").split(", "));
+					moments = moments.concat(i.replace("[", "")
+							.replace("]", "").split(", "));
 				});
-				
+
 				return moments;
 			}
 		</script>
