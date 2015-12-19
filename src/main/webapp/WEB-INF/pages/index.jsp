@@ -279,15 +279,202 @@ div#graph {
 			function doSlider(interval, map) {
 				svg.selectAll(".link").attr("display", "none");
 				svg.selectAll(".node").attr("display", "none");
-				var visibleNodes = [];
-				svg.selectAll(".node").filter(function(node) {
-					var bool = intervalBelongs([map[interval[0] | 0], map[interval[1] | 0]], node.interval);
-					visibleNodes[node.id] = bool;
-					return bool;
+				
+				var graph = {};
+				graph.nodes = [];
+				graph.links = [];
+				
+				svg.selectAll(".node").each(function(node) {
+					graph.nodes.push(node);
+				});
+				svg.selectAll(".link").each(function(link) {
+					graph.links.push(link);
+				});
+				
+				removeOutOfIntervalPaths(graph, [map[interval[0] | 0], map[interval[1] | 0]]);
+				
+				var containsWithId = function(arr) {
+					return function(elem) {
+						for (var xx = 0; xx < graph.nodes.length; xx++ ) {
+							if (graph.nodes[xx].id == elem.id) {
+								return true;
+							}
+						}
+						return false;
+					}
+				}
+				
+				svg.selectAll(".node").filter(containsWithId(graph.nodes)).attr("display", "block");
+				svg.selectAll(".link").filter(function(l) {
+					return containsWithId(graph.nodes)(l.source) && containsWithId(graph.nodes)(l.target);Aa
 				}).attr("display", "block");
-				svg.selectAll(".link").filter(function(link) {
-					return visibleNodes[link.source.id] && visibleNodes[link.target.id];
-				}).attr("display", "block");
+			}
+			
+			function removeOutOfIntervalPaths(graph, interval) {
+				var removedNodosArista = [];
+				graph.nodes.filter(function(n) {
+					return n.label == 'ARISTA';
+				}).filter(function(na) {
+					return !intervalBelongs(interval, na.interval);
+				}).forEach(function(na) {
+					removedNodosArista.push(na);
+				});
+				
+				var map = [];
+				
+				currentConnections = [];
+				connected = [];
+				
+				graph.nodes.filter(function(n) {
+					return n.label == 'OBJETO';
+				}).forEach(function(no) {
+					currentConnections[no.id] = 0;
+				});
+				
+				
+				graph.nodes.filter(function(n) {
+					return n.label == 'ARISTA';
+				}).forEach(function(na) {
+					var fromTo = getConnectingNodeIds(na, graph);
+					var from = fromTo[0];
+					var to = fromTo[1];
+					connected[from] = true;
+					connected[to] = true;
+					currentConnections[from]++;
+					currentConnections[to]++;
+				});
+				
+				var xxx = graph.nodes.filter(function(n) {
+					return n.label == 'ARISTA';
+				});
+				
+				for (var i = 0; i < removedNodosArista.length; i++) {
+					var connectingNodes = getConnectingNodeIds(removedNodosArista[i], graph);
+					var from = connectingNodes[0];
+					var to = connectingNodes[1];
+					var currentArray = map[from];
+					if (!currentArray) {
+						currentArray = [];
+					}
+					
+					currentArray[to] = true;
+					map[from] = currentArray;
+					removeNode(removedNodosArista[i], graph, currentConnections, connected);
+				}
+				
+				var nodosArista = graph.nodes.filter(function(n) {
+					return n.label == 'ARISTA';
+				});
+				
+				for (i = 0; i < nodosArista.length; i++) {
+					var connectingNodes = getConnectingNodeIds(nodosArista[i], graph);
+					var from = connectingNodes[0];
+					var to = connectingNodes[1];
+					var currentArray = map[from];
+					if (!currentArray) {
+						currentArray = [];
+					}
+					
+					if (currentArray[to]) {
+						removeNode(nodosArista[i], graph, currentConnections, connected);
+					}
+				}
+				
+
+				var nodosObjeto = graph.nodes.filter(function(n) {return n.label == 'OBJETO';});
+				
+				for (i = 0; i < nodosObjeto.length; i++) {
+					var no = nodosObjeto[i];
+					
+					if (!intervalBelongs(interval, no.interval) 
+						|| (currentConnections[no.id] == 0 && connected[no.id])) {
+						removeNode(nodosObjeto[i], graph);
+					}
+				}
+			}
+			
+			function getConnectingNodeIds(nodoArista, graph) {
+				var nodoAristaId = nodoArista.id;
+				var nodeFromId = graph.links.filter(function(l) {return l.source.label == 'OBJETO' && l.target.id == nodoAristaId})[0];
+				var nodeToId = graph.links.filter(function(l) {return l.target.label == 'OBJETO' && l.source.id == nodoAristaId})[0];
+				
+				return [nodeFromId.source.id, nodeToId.target.id];
+			}
+			
+			function indexOf(node, graph) {
+				for (var i = 0; i < graph.nodes.length; i++) {
+					if (graph.nodes[i].id == node.id) {
+						return i;
+					}
+				}
+
+				return -1;
+			}
+			
+			function removeNode(node, graph, currentConnections, connected) {
+				var indexOfNode = indexOf(node, graph);
+				
+				if (indexOfNode == -1) {
+					// Requested to remove a node that was already removed. Do nothing.
+					return;
+				}
+				
+				if (node.label == 'OBJETO' && currentConnections && connected) {
+					return;
+				}
+				
+				graph.nodes.splice(indexOfNode, 1);
+				
+				if (node.label == 'VALOR') {
+					return;
+				}
+				
+				if (node.label == 'ARISTA') {
+					var fromTo = getConnectingNodeIds(node, graph);
+					var from = fromTo[0];
+					var to = fromTo[1];
+					currentConnections[from]--;
+					currentConnections[to]--;
+				}
+				
+				var type;
+				if (node.label == 'OBJETO') {
+					type = 'ATRIBUTO';
+				} else if (node.label == 'ARISTA') {
+					type = 'ATRIBUTO';
+				} else if (node.label == 'ATRIBUTO') {
+					type = 'VALOR';
+				} else {
+					type = '';
+				}
+				
+				removeNodeLinks(node, graph, currentConnections, connected, type);
+			}
+			
+			function removeNodeLinks(node, graph, currentConnections, connected, type) {
+				var nodeLinkIndexes = []
+				var nodeLinks = function() {
+					var ret = [];
+					graph.links.forEach(function(link, ix) {
+						if (link.source.id == node.id || link.target.id == node.id) {
+							nodeLinkIndexes.push(ix);
+							ret.push(link);
+						}
+					});
+					
+					return ret;
+				}();
+				
+				for (var j = 0; j < nodeLinks.length; j++) {
+					graph.links.splice(nodeLinkIndexes[j] - j, 1);
+				}
+				
+				nodeLinks.forEach(function(link) {
+					var otherNode = link.source.id == node.id ? link.target : link.source;
+					if (otherNode.label == type) {
+						removeNode(otherNode, graph, currentConnections, connected);
+					}
+				});
 			}
 			
 			function intervalBelongs(interval, testInterval) {
