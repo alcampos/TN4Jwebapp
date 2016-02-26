@@ -313,7 +313,7 @@ div#graph {
 						return -1;
 					}
 
-					return e1.moment - e2.moment;
+					return e1.moment.localeCompare(e2.moment);
 				});
 			}
 
@@ -565,8 +565,11 @@ div#graph {
 				var moments = [];
 				intervals.forEach(function(i) {
 					moments = moments.concat(i.replace("[", "")
-							.replace("]", "").split(", "));
+							.replace("]", "").split(",").map(function(m) {
+								return m.trim();
+							}));
 				});
+
 
 				return moments;
 			}
