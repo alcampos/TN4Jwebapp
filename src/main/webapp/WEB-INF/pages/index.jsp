@@ -29,6 +29,13 @@
 </head>
 <body>
 	<h1>Neo4j Visualizer</h1>
+        <select id="query-select" onchange="onOptionChange()">
+	  <option value="" disabled selected style="display:none;">Select query</option>
+	  <option value="select Building from Person-LivedIn->Building where Person.Name = 'E K'">select Building from Person-LivedIn->Building where Person.Name = 'E K'</option>
+	  <option value="select * from Person as P2<-Friend-Person-LivedIn->Building where Person.Name = 'E K'">select * from Person as P2<-Friend-Person-LivedIn->Building where Person.Name = 'E K'</option>
+	  <option value="select Person-LivedIn->Building from Person-LivedIn->Building where Person.Name = 'E K'">"select Person-LivedIn->Building from Person-LivedIn->Building where Person.Name = 'E K'</option>
+	  <option value="select Person-LivedIn->Building from Person-LivedIn->Building where Person.Name = 'E K' snapshot 1990">"select Person-LivedIn->Building from Person-LivedIn->Building where Person.Name = 'E K' snapshot 1990</option>
+	</select>
 	<form role="form" action="/query" method="post">
 		<div class="form-group">
 			<label for="inputlg">Insert Query</label> <input
@@ -39,6 +46,15 @@
 	</form>
 	
 
+<script>
+function onOptionChange() {
+  var select = document.getElementById('query-select');
+  console.log(select.value);
+  var input = document.getElementById('inputlg');
+  input.value = select.value;
+  select.value = "";
+}
+</script>
 
 
 
